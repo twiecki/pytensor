@@ -16,6 +16,7 @@ from pytensor.graph.basic import (
     clone,
     clone_get_equiv,
     clone_replace,
+    replace,
     equal_computations,
     general_toposort,
     get_var_by_name,
@@ -848,3 +849,44 @@ def test_NominalVariable_create_variable_type():
     assert type(ntv_unpkld) is type(ntv)
     assert ntv_unpkld.equals(ntv)
     assert ntv_unpkld is ntv
+
+
+def test_replace():
+    from pytensor import dprint
+    r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(2)
+    # r1 - o11=op(r1) - o12=op(o11) - o13=op(o12) \
+    #                               \              '----> o3(o13, o23)
+    # r2 - o21=op(r2) - o22=op(o21) - o23=op(o22, o12) /
+    
+    # valid {o21: r3}
+    # r1 - o11=op(r1) - o12=op(o11) - o13=op(o12) \
+    #                               \              '----> ~o3(o13, o23)~
+    #               r3 - ~o22=op(r3)~ - ~o23=op(o22, o12)~ /
+    
+    o11 = MyOp(r1)
+    o12 = MyOp(o11)
+    o13 = MyOp(o12)
+    
+    o21 = MyOp(r2)
+    o22 = MyOp(o21)
+    o23 = MyOp(o22, o12)
+    
+    o3 = MyOp(o13, o23)
+    
+    o3r1 = replace([o3], {o21: r3})[0]
+    graph = dprint(o3r1, file="str")
+    assert graph == """MyOp [id A]
+ |MyOp [id B]
+ | |MyOp [id C]
+ |   |MyOp [id D]
+ |     |<R1> [id E]
+ |MyOp [id F]
+   |MyOp [id G]
+   | |<R2> [id H]
+   |MyOp [id C]
+"""
+    assert r1 in ancestors([o3r1])
+    assert o22 not in ancestors([o3r1])
+    assert o23 not in ancestors([o3r1])
+    assert o12 in ancestors([o3r1])
+    assert o13 in ancestors([o3r1])

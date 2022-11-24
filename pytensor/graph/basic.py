@@ -1919,3 +1919,32 @@ def replace_nominals_with_dummies(inputs, outputs):
         inputs = [existing_nominal_replacements[i] for i in inputs]
 
     return inputs, outputs
+
+
+def replace(
+    outputs: List[Variable], replace: Dict[Variable, Variable], **kwargs
+) -> List[Variable]:
+    memo = replace.copy()
+    dependent = set()
+    independent = set()
+    replace_owners = {r.owner for r in replace if r.owner}
+    for apply in io_toposort([], outputs):
+        for input in apply.inputs:
+            if input not in memo:
+                # new input, did not depend on memo
+                # save as is
+                memo[input] = input
+        # 1. check we do not replace the parent owner,
+        if not apply in replace_owners and is_in_ancestors(
+            apply,
+            replace_owners,
+            known_dependent=dependent,
+            known_independent=independent,
+        ):
+            clone_node_and_cache(apply, memo, clone_inner_graphs=False, **kwargs)
+        else:
+            for out in apply.outputs:
+                if out not in memo:
+                    # The apply we skip, track any output that was not met or replaced
+                    memo[out] = out
+    return [memo[o] for o in outputs]
