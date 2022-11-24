@@ -1619,7 +1619,7 @@ def list_of_nodes(
 
 def is_in_ancestors(
     l_apply: Apply,
-    f_apply: Union[Apply, Sequence[Apply]],
+    f_apply: Union[Apply, Collection[Apply]],
     *,
     known_dependent: Optional[Set[Apply]] = None,
     known_independent: Optional[Set[Apply]] = None,
@@ -1631,7 +1631,7 @@ def is_in_ancestors(
     ----------
     l_apply : Apply
         The node to walk.
-    f_apply : Union[Apply, Sequence[Apply]]
+    f_apply : Union[Apply, Collection[Apply]]
         The node to find in `l_apply`.
     known_dependent: Optional[Set[Apply]]
         Cache information about intermediate Applys that depend on f_apply
@@ -1649,8 +1649,8 @@ def is_in_ancestors(
         known_dependent = set()
     if known_independent is None:
         known_independent = set()
-    if not isinstance(f_apply, Sequence):
-        f_apply = [f_apply]
+    if not isinstance(f_apply, Collection):
+        f_apply = {f_apply}
     if l_apply in known_dependent:
         return True
     elif l_apply in f_apply:
