@@ -1935,7 +1935,7 @@ def replace(
                 # save as is
                 memo[input] = input
         # 1. check we do not replace the parent owner,
-        if not apply in replace_owners and is_in_ancestors(
+        if apply not in replace_owners and is_in_ancestors(
             apply,
             replace_owners,
             known_dependent=dependent,
